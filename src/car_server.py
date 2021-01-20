@@ -60,8 +60,16 @@ class Package:
 
 
 cars = [
+        Car(
+        key=bytes.fromhex("14523170731EC3E1F8F01D30688B915A4C8877CA50D59F6D1A09F01A40E5EF59"),
+        sequence=0,
+    ),
     Car(
         key=bytes.fromhex("14523170731EC3E1F8F01D30688B915A4C8877CA50D59F6D1A09F01A40E5EF58"),
+        sequence=0,
+    ),
+        Car(
+        key=bytes.fromhex("14523170731EC3E1F8F01D30688B915A4C8877CA50D59F6D1A09F01A40E5EF50"),
         sequence=0,
     ),
 ]
@@ -71,9 +79,10 @@ def main():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         while True:
             try:
-                sock.bind(("192.168.11.19", 10001))
+                sock.bind(("10.1.0.29", 10001))
                 break
-            except:
+            except Exception as e:
+                print(e)
                 time.sleep(0.5)
         print("ready")
         sock.listen(0)

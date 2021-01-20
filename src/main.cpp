@@ -23,7 +23,6 @@ typedef struct MyPacket
 } MyPacket;
 
 uint8_t carkey_key[KEY_SIZE];
-volatile bool led = false;
 volatile bool change = false;
 const char *ssid = "ssid";
 const char *password = "password";
@@ -58,19 +57,10 @@ void IRAM_ATTR closeDoor()
 
 void transmit(void *p, size_t length)
 {
-  client.connect("192.168.11.19", 10001);
+  client.connect("10.1.0.29", 10001);
   client.write((byte *)&packet.length, packet.length);
-  for (int i = 0; i < packet.length; i++)
-    Serial.print(((byte *)&packet.length)[i], HEX);
-  Serial.println("");
-  Serial.write((byte *)&packet, packet.length);
   client.flush();
   client.stop();
-  Serial.println("");
-  Serial.println(packet.length);
-  Serial.println(packet.time);
-  Serial.println(packet.seq);
-  Serial.println(packet.action);
 }
 
 void populate_key()
@@ -80,16 +70,8 @@ void populate_key()
   {
     // EEPROM.write(i, rand());
     carkey_key[i] = EEPROM.read(i);
-    Serial.print(EEPROM.read(i), HEX);
   }
   EEPROM.commit();
-  Serial.println();
-  for (int i = 0; i < sizeof(carkey_key); i++)
-  {
-    Serial.print((carkey_key)[i], HEX);
-    Serial.print(".");
-  }
-  Serial.println("");
 }
 
 void populate_signature()
@@ -101,21 +83,6 @@ void populate_signature()
   mbedtls_md_update(&ctx, (byte *)&packet, packet.length - sizeof(packet.signature));
   mbedtls_md_finish(&ctx, packet.signature);
   mbedtls_md_free(&ctx);
-  Serial.println(".");
-  Serial.write(packet.signature, 32);
-  Serial.println(".");
-}
-
-void printLocalTime()
-{
-  struct tm timeinfo;
-
-  if (!getLocalTime(&timeinfo))
-  {
-    Serial.println("Failed to obtain time");
-    return;
-  }
-  Serial.println(&timeinfo, "%A, %B %d %Y %H:%M:%S");
 }
 
 void setup()
@@ -124,21 +91,13 @@ void setup()
   pinMode(PIN_DOOR_OPEN, INPUT_PULLUP);
   pinMode(PIN_DOOR_CLOSE, INPUT_PULLUP);
   EEPROM.begin(32);
-  Serial.begin(9600);
   delay(100);
-  Serial.println("connecting");
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED)
   {
     delay(500);
-    Serial.print(".");
   }
-  Serial.println("");
-  Serial.println(WiFi.localIP());
-  Serial.println("connect to server");
-
   configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
-  printLocalTime();
   populate_key();
   attachInterrupt(PIN_DOOR_OPEN, openDoor, FALLING);
   attachInterrupt(PIN_DOOR_CLOSE, closeDoor, FALLING);
@@ -153,7 +112,6 @@ void loop()
     packet.time = timeinfo.tm_sec + 60 * timeinfo.tm_min + 60 * 60 * (timeinfo.tm_hour / 4);
     populate_signature();
     transmit(&packet, packet.length);
-    digitalWrite(LED_BUILTIN, led);
     delay(500);
     change = false;
   }
